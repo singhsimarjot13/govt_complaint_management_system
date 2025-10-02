@@ -1,0 +1,12 @@
+/node_modules
+/dist
+/build
+/public
+/src
+/test
+/coverage
+/docs
+/logs
+/temp
+/uploads
+/uploads/*
