@@ -4,7 +4,9 @@ import {
   getAssignedIssues,
   updateIssueStatus,
   markWorkDone,
-  getWorkerProfile
+  getWorkerProfile,
+  uploadImage,
+  upload
 } from "../controllers/workerController.js";
 
 const router = express.Router();
@@ -14,6 +16,9 @@ router.get("/issues", protect(["worker"]), getAssignedIssues);
 router.put("/issues/:issue_id/status", protect(["worker"]), updateIssueStatus);
 router.put("/issues/:issue_id/complete", protect(["worker"]), markWorkDone);
 router.get("/profile", protect(["worker"]), getWorkerProfile);
+
+// Image Upload
+router.post("/upload-image", protect(["worker"]), upload.single('image'), uploadImage);
 
 export default router;
 

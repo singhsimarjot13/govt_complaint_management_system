@@ -36,7 +36,12 @@ const issueSchema = new mongoose.Schema(
       type: String,
       enum: [
         "open",
-        "in-progress", 
+        "verified_by_councillor",
+        "assigned_to_department", 
+        "in-progress",
+        "resolved_by_worker",
+        "department_resolved",
+        "verified_resolved",
         "resolved",
         "reopened"
       ],
@@ -65,6 +70,72 @@ const issueSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: ""
+    },
+    // Workflow tracking fields
+    verified_by_councillor_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Councillor",
+      default: null
+    },
+    assigned_by_mc_admin_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MC_Admin",
+      default: null
+    },
+    assigned_by_department_admin_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Department Admin user
+      default: null
+    },
+    resolved_by_worker_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Worker",
+      default: null
+    },
+    department_verified_by_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Department Admin user
+      default: null
+    },
+    final_verified_by_councillor_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Councillor",
+      default: null
+    },
+    // Worker execution fields
+    worker_photos: {
+      type: [String], // array of after-work photo URLs
+      default: []
+    },
+    worker_notes: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    // Timestamps for workflow stages
+    verified_at: {
+      type: Date,
+      default: null
+    },
+    assigned_to_department_at: {
+      type: Date,
+      default: null
+    },
+    assigned_to_worker_at: {
+      type: Date,
+      default: null
+    },
+    resolved_by_worker_at: {
+      type: Date,
+      default: null
+    },
+    department_verified_at: {
+      type: Date,
+      default: null
+    },
+    final_verified_at: {
+      type: Date,
+      default: null
     },
   },
   {

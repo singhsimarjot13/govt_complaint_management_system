@@ -10,3 +10,4 @@
 /temp
 /uploads
 /uploads/*
+/.env

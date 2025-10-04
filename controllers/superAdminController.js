@@ -115,12 +115,13 @@ export const createMC = async (req, res) => {
       role: "mc_admin",
     });
     await newUser.save();
-
+    const id=await User.findOne({email:email});
     // 2️⃣ MC_Admin collection (specific info)
     const mcAdmin = new MC_Admin({
       name,
       email,   // reference by email
       city,
+      user_id: id._id,
     });
     await mcAdmin.save();
 

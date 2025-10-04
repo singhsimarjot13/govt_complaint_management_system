@@ -25,6 +25,7 @@ const notificationSchema = new mongoose.Schema(
         "Reassigned",
         "Completed",
         "Reopened",
+        "Work Completed - Please verify"
       ],
       required: true,
     },

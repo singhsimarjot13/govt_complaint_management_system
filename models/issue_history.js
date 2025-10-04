@@ -37,11 +37,49 @@ const issueHistorySchema = new mongoose.Schema(
       ref: "Councillor", // nullable
       default: null,
     },
+    assigned_by_mc_admin_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MC_Admin",
+      default: null,
+    },
+    assigned_by_department_admin_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Department Admin
+      default: null,
+    },
+    notes: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    action_type: {
+      type: String,
+      enum: [
+        "created",
+        "verified",
+        "ward_assigned",
+        "department_assigned",
+        "worker_assigned",
+        "work_started",
+        "work_completed",
+        "department_verified",
+        "final_verified",
+        "feedback_submitted",
+        "reopened",
+        "transferred"
+      ],
+      required: true,
+    },
     status: {
       type: String,
       enum: [
         "open",
-        "in-progress", 
+        "verified_by_councillor",
+        "assigned_to_department", 
+        "in-progress",
+        "resolved_by_worker",
+        "department_resolved",
+        "verified_resolved",
         "resolved",
         "reopened"
       ],

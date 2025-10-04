@@ -13,7 +13,8 @@ import {
   deleteWard,
   getWards,
   getIssuesForAssignment,
-  assignIssueToDepartment
+  assignIssueToDepartment,
+  transferIssueToDepartment
 } from "../controllers/mcAdminController.js";
 
 const router = express.Router();
@@ -38,5 +39,6 @@ router.get("/wards", protect(["mc_admin"]), getWards);
 // Issue Management
 router.get("/issues", protect(["mc_admin"]), getIssuesForAssignment);
 router.put("/issues/:issue_id/assign", protect(["mc_admin"]), assignIssueToDepartment);
+router.put("/issues/:issue_id/transfer", protect(["mc_admin"]), transferIssueToDepartment);
 
 export default router;

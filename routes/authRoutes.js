@@ -10,6 +10,6 @@ router.post("/login", login);
 router.post("/logout", logout);
 router.post("/register", register);
 router.get("/me", protect(), (req, res) => {
-  res.json({ success: true, role: req.user.role });
+  res.json({ success: true, role: req.user.role, id:req.user._id });
 });
 export default router;

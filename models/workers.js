@@ -25,10 +25,6 @@ const workerSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    photo: {
-      type: String, // Cloudinary URL
-      default: ""
-    }
   },
   {
     timestamps: true, // createdAt & updatedAt

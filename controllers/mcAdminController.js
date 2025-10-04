@@ -3,13 +3,17 @@ import Ward from "../models/ward.js";
 import Department from "../models/dept.js";
 import Councillor from "../models/Councillors.js";
 import Worker from "../models/workers.js";
+import Issue from "../models/issues.js";
+import IssueHistory from "../models/issue_history.js";
+import Notification from "../models/notifications.js";
+import MC_Admin from "../models/mc_admins.js";
 
 // ----- Councillors -----
 export const createCouncillor = async (req, res) => {
   try {
     const { name, email, ward_id, password } = req.body;
     const mc_admin_id = req.user.id; // Get MC Admin ID from auth middleware
-
+    console.log("MC Admin ID:", mc_admin_id);
     // 1. Create user account
     const newUser = new User({ 
       name, 
@@ -127,10 +131,9 @@ export const deleteDepartment = async (req, res) => {
 
 export const getDepartments = async (req, res) => {
   try {
-    const mc_admin_id = req.user.id;
-    const departments = await Department.find({ mc_admin_id })
-      .populate("admin_id", "name email")
-      .populate("mc_admin_id", "name email");
+    const user_id= req.user.id;
+    const mc_admin_id= await Councillor.find({})
+    const departments = await Department.find({ mc_admin_id: user_id }); 
     res.json(departments);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -197,19 +200,19 @@ export const getWards = async (req, res) => {
 };
 
 
-// Get issues that need department assignment
+// Get all issues for MC Admin dashboard
 export const getIssuesForAssignment = async (req, res) => {
   try {
     const mc_admin_id = req.user.id;
-    
-    // Get all issues that are verified by councillors (simplified since ward model is basic)
-    const issues = await Issue.find({ 
-      status: "in-progress"
-    })
-    .populate('user_id', 'name email')
-    .populate('ward_id', 'ward_name') // Use ward_name instead of name
-    .populate('current_department_id', 'name')
-    .sort({ createdAt: -1 });
+
+    // Get all issues to show status even if no actions are available
+    const issues = await Issue.find({})
+      .populate("user_id", "name email")
+      .populate("ward_id", "ward_name")
+      .populate("current_department_id", "name")
+      .populate("verified_by_councillor_id", "name")
+      .populate("current_worker_id", "name")
+      .sort({ createdAt: -1 });
 
     res.json(issues);
   } catch (err) {
@@ -217,21 +220,31 @@ export const getIssuesForAssignment = async (req, res) => {
   }
 };
 
+
 // Assign issue to department
 export const assignIssueToDepartment = async (req, res) => {
   try {
     const { issue_id } = req.params;
-    const { department_id } = req.body;
+    const { department_id, notes } = req.body;
+    const mc_admin_id = req.user.id;
     
     const issue = await Issue.findById(issue_id);
     if (!issue) {
       return res.status(404).json({ message: "Issue not found" });
     }
 
+    // Check if issue is in correct status for department assignment
+    if (issue.status !== "verified_by_councillor" && issue.status!=="reopened") {
+      return res.status(400).json({ message: "Issue must be verified by councillor before department assignment" });
+    }
+
     // Update issue with new department
     const previousDepartment = issue.current_department_id;
     issue.current_department_id = department_id;
     issue.current_worker_id = null; // Reset worker assignment
+    issue.status = "assigned_to_department";
+    issue.assigned_by_mc_admin_id = mc_admin_id;
+    issue.assigned_to_department_at = new Date();
     await issue.save();
 
     // Create history entry
@@ -239,7 +252,10 @@ export const assignIssueToDepartment = async (req, res) => {
       issue_id,
       previous_department_id: previousDepartment,
       new_department_id: department_id,
-      status: "Reassigned to Department"
+      assigned_by_mc_admin_id: mc_admin_id,
+      status: "assigned_to_department",
+      action_type: "department_assigned",
+      notes: notes || "Issue assigned to department by MC Admin"
     });
     await history.save();
 
@@ -250,12 +266,76 @@ export const assignIssueToDepartment = async (req, res) => {
         issue_id,
         recipient_id: department.admin_id,
         recipient_model: "User",
-        type: "Issue Assigned"
+        type: "Issue Assigned - Please assign worker"
       });
       await notification.save();
     }
 
-    res.json({ message: "Issue assigned to department", issue });
+    res.json({ 
+      message: "Issue assigned to department", 
+      issue,
+      next_step: "Department Admin will assign worker"
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Transfer issue to different department
+export const transferIssueToDepartment = async (req, res) => {
+  try {
+    const { issue_id } = req.params;
+    const { new_department_id, reason, notes } = req.body;
+    const mc_admin_id = req.user.id;
+    
+    const issue = await Issue.findById(issue_id);
+    if (!issue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    // Check if issue is in correct status for transfer
+    if (!["assigned_to_department", "in-progress", "resolved_by_worker"].includes(issue.status)) {
+      return res.status(400).json({ message: "Issue cannot be transferred in current status" });
+    }
+
+    // Update issue with new department
+    const previousDepartment = issue.current_department_id;
+    issue.current_department_id = new_department_id;
+    issue.current_worker_id = null; // Reset worker assignment
+    issue.status = "assigned_to_department";
+    issue.assigned_by_mc_admin_id = mc_admin_id;
+    issue.assigned_to_department_at = new Date();
+    await issue.save();
+
+    // Create history entry
+    const history = new IssueHistory({
+      issue_id,
+      previous_department_id: previousDepartment,
+      new_department_id: new_department_id,
+      assigned_by_mc_admin_id: mc_admin_id,
+      status: "assigned_to_department",
+      action_type: "transferred",
+      notes: notes || `Issue transferred to new department. Reason: ${reason || 'Department reassignment'}`
+    });
+    await history.save();
+
+    // Notify new department admin
+    const department = await Department.findById(new_department_id);
+    if (department) {
+      const notification = new Notification({
+        issue_id,
+        recipient_id: department.admin_id,
+        recipient_model: "User",
+        type: "Issue Transferred - Please assign worker"
+      });
+      await notification.save();
+    }
+
+    res.json({ 
+      message: "Issue transferred to new department", 
+      issue,
+      next_step: "New Department Admin will assign worker"
+    });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
