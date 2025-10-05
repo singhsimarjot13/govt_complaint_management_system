@@ -2,6 +2,10 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   getDashboard,
+  getDistrictStats,
+  getCitizenLeaderboard,
+  getMCAdminLeaderboard,
+  getWardLeaderboard,
   createMLA,
   updateMLA,
   deleteMLA,
@@ -16,6 +20,11 @@ const router = express.Router();
 
 // Super Admin dashboard
 router.get("/dashboard", protect(["super_admin"]), getDashboard);
+// Public heatmap stats (no auth required)
+router.get("/district-stats", getDistrictStats);
+router.get("/leaderboard/citizens", getCitizenLeaderboard);
+router.get("/leaderboard/mcadmins", getMCAdminLeaderboard);
+router.get("/leaderboard/wards", getWardLeaderboard);
 
 // MLA Management
 router.post("/create-mla", protect(["super_admin"]), createMLA);

@@ -7,9 +7,9 @@ const wardSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-   
-  
-    timestamps: String, // createdAt & updatedAt auto banenge
+  },
+  {
+    timestamps: true,
   }
 );
 

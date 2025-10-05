@@ -143,7 +143,9 @@ export const getDepartments = async (req, res) => {
 // ----- Wards -----
 export const createWard = async (req, res) => {
   try {
-    const ward = new Ward(req.body);
+    const { ward_name } = req.body;
+    if (!ward_name) return res.status(400).json({ message: "ward_name is required" });
+    const ward = new Ward({ ward_name });
     await ward.save();
     res.status(201).json({ message: "Ward created", ward });
   } catch (err) {
@@ -153,7 +155,10 @@ export const createWard = async (req, res) => {
 
 export const updateWard = async (req, res) => {
   try {
-    const ward = await Ward.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { ward_name } = req.body;
+    const update = {};
+    if (ward_name) update.ward_name = ward_name;
+    const ward = await Ward.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!ward) return res.status(404).json({ message: "Not found" });
     res.json({ message: "Ward updated", ward });
   } catch (err) {
@@ -173,27 +178,45 @@ export const deleteWard = async (req, res) => {
 
 export const getWards = async (req, res) => {
   try {
-    const wards = await Ward.find(); // Fetch all wards
-    console.log("Fetched wards:", wards); // Debug log
-    
-    // If no wards exist, create some sample ones (temporary solution)
-    if (wards.length === 0) {
-      console.log("No wards found, creating sample wards...");
-      const sampleWards = [
-        { ward_name: "Ward 1 - Central" },
-        { ward_name: "Ward 2 - North" },
-        { ward_name: "Ward 3 - South" },
-        { ward_name: "Ward 4 - East" },
-        { ward_name: "Ward 5 - West" }
-      ];
-      
-      await Ward.insertMany(sampleWards);
-      const newWards = await Ward.find();
-      console.log("Created sample wards:", newWards);
-      return res.json(newWards);
-    }
-    
+    const wards = await Ward.find().sort({ createdAt: -1 });
     res.json(wards);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// MC Admin Analytics
+export const getMCAnalytics = async (req, res) => {
+  try {
+    const mc_admin_id = req.user.id;
+    const councillors = await Councillor.find({ mc_admin_id }).select('ward_id');
+    const wardIds = councillors.map(c => c.ward_id).filter(Boolean);
+
+    const wards = [];
+    let totalIssues = 0;
+    let resolvedIssues = 0;
+    let verifiedIssues = 0;
+
+    for (const wid of wardIds) {
+      const ward = await Ward.findById(wid);
+      if (!ward) continue;
+      const total = await Issue.countDocuments({ ward_id: wid });
+      const resolved = await Issue.countDocuments({ ward_id: wid, status: { $in: ["verified_resolved", "resolved"] } });
+      const verified = await Issue.countDocuments({ ward_id: wid, status: "verified_by_councillor" });
+      const pending = Math.max(total - resolved, 0);
+      const efficiency = total > 0 ? Math.round((resolved / total) * 100) : 0;
+      wards.push({ ward_id: String(wid), ward_name: ward.ward_name, total, resolved, pending, verified, efficiency });
+      totalIssues += total;
+      resolvedIssues += resolved;
+      verifiedIssues += verified;
+    }
+
+    wards.sort((a, b) => b.resolved - a.resolved);
+
+    res.json({
+      totals: { totalIssues, resolvedIssues, verifiedIssues, pendingIssues: Math.max(totalIssues - resolvedIssues, 0) },
+      wards
+    });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -336,6 +359,45 @@ export const transferIssueToDepartment = async (req, res) => {
       issue,
       next_step: "New Department Admin will assign worker"
     });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Set or update issue priority (MC Admin only)
+export const setIssuePriority = async (req, res) => {
+  try {
+    const { issue_id } = req.params;
+    const { priority } = req.body; // "Low" | "Medium" | "High"
+
+    const issue = await Issue.findById(issue_id);
+    if (!issue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    // Allow priority change when verified by councillor or reopened or assigned to department
+    const allowedStatuses = [
+      "verified_by_councillor",
+      "reopened",
+      "assigned_to_department"
+    ];
+    if (!allowedStatuses.includes(issue.status)) {
+      return res.status(400).json({ message: "Priority can only be set after councillor verification or when reopened/assigned" });
+    }
+
+    issue.priority = priority;
+    await issue.save();
+
+    // History entry for auditing
+    const history = new IssueHistory({
+      issue_id,
+      status: issue.status,
+      action_type: "priority_updated",
+      notes: `Priority set to ${priority}`
+    });
+    await history.save();
+
+    res.json({ message: "Priority updated", issue });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

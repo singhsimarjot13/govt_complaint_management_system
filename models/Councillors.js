@@ -25,11 +25,6 @@ const councillorSchema = new mongoose.Schema(
       trim: true,
       ref:"User"
     },
-    user_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
   },
   {
     timestamps: true, // createdAt & updatedAt

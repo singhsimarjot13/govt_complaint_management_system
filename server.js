@@ -17,7 +17,18 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin:"http://localhost:5173", credentials:true }));
+const allowedOrigins = [
+  process.env.VERCEL_URL  
+].filter(Boolean);
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("CORS not allowed"), false);
+  },
+  credentials: true
+}));
 dotenv.config();
 // Public & Auth routes
 app.use("/api/auth", authRoutes);
@@ -54,4 +65,9 @@ mongoose.connect(process.env.MONGO_URI)
 })
 .catch(err => console.error(err));
 
-app.listen(5000, ()=> console.log("Server running on http://localhost:5000"));
+const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, ()=> console.log(`Server running on http://localhost:${PORT}`));
+}
+
+export default app;
