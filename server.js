@@ -40,25 +40,32 @@ app.use(cors({
 app.options(/.*/, cors()); // ✅ match all routes using regex
 // ✅ Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(async () => {
-    console.log("MongoDB connected");
+  .then(() => {
+    console.log("MongoDB connected ✅");
+    createDefaultSuperAdmin();
+  })
+  .catch(err => console.error("MongoDB error:", err.message));
 
-    // Ensure Super Admin exists
-    const superAdmin = await User.findOne({ email: "superadmin@example.com" });
-    if (!superAdmin) {
-      const defaultAdmin = new User({
+// Function to create Super Admin if missing
+async function createDefaultSuperAdmin() {
+  try {
+    const existing = await User.findOne({ role: "super_admin" });
+    if (!existing) {
+      const admin = new User({
         name: "Super Admin",
         email: "superadmin@example.com",
         password: "super123",
         role: "super_admin"
       });
-      await defaultAdmin.save();
-      console.log("✅ Default Super_Admin created");
+      await admin.save();
+      console.log("✅ Default Super Admin created");
     } else {
-      console.log("Super_Admin already exists");
+      console.log("Super Admin already exists");
     }
-  })
-  .catch(err => console.error("MongoDB error:", err.message));
+  } catch (err) {
+    console.error("Error creating Super Admin:", err.message);
+  }
+}
 
 // ✅ Routes
 app.get("/", (req, res) => res.send("Backend running on Vercel ✅"));
