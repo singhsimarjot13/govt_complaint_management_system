@@ -22,7 +22,7 @@ app.use(cookieParser());
 // ✅ Allow local + deployed frontends
 const allowedOrigins = [
   "http://localhost:5173", // for local dev
-  "https://govt-complaint-management-system.vercel.app", // frontend domain
+  "https://govt-complaint-management-system-frontend-6v5dyx680.vercel.app/", // frontend domain
   `https://${process.env.VERCEL_URL}` // for vercel preview
 ].filter(Boolean);
 
