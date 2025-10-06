@@ -44,12 +44,12 @@ export const getDistrictStats = async (req, res) => {
       let pending = 0;
 
       if (wardIds.length > 0) {
-        total = await IssueModel.countDocuments({ ward_id: { $in: wardIds } });
-        resolved = await IssueModel.countDocuments({ 
+        total = await Issue.countDocuments({ ward_id: { $in: wardIds } });
+        resolved = await Issue.countDocuments({ 
           ward_id: { $in: wardIds },
           status: { $in: ["verified_resolved", "resolved"] } 
         });
-        verified = await IssueModel.countDocuments({ 
+        verified = await Issue.countDocuments({ 
           ward_id: { $in: wardIds },
           status: "verified_by_councillor" 
         });
