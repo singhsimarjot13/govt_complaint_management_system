@@ -16,27 +16,18 @@ import User from "./models/User.js";
 dotenv.config(); // ✅ move to top before using env vars
 
 const app = express();
+app.use(cors({
+  origin: [
+  "https://govt-complaint-management-system-fr.vercel.app", // frontend
+  `https://${process.env.VERCEL_URL}`
+  ],
+  credentials: true,
+}));
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ Allow local + deployed frontends
-const allowedOrigins = [
-  "https://govt-complaint-management-system-fr.vercel.app", // frontend
-  `https://${process.env.VERCEL_URL}`
-];
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // mobile apps or server requests
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error("CORS not allowed"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
-app.options("/api/*", cors()); // only for API routes
 // ✅ Connect to MongoDB
 let isMongoConnected = false;
 mongoose.connect(process.env.MONGO_URI)

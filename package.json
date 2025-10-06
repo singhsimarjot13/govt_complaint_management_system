@@ -8,5 +8,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.3",
     "multer": "^2.0.2"
+  },
+    "scripts": {
+  "vercel-start": "node server.js"
   }
 }
