@@ -36,8 +36,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// Handle all OPTIONS preflight requests
-app.options(/.*/, cors()); // ✅ match all routes using regex
+app.options("/api/*", cors()); // only for API routes
 // ✅ Connect to MongoDB
 let isMongoConnected = false;
 mongoose.connect(process.env.MONGO_URI)
