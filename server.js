@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-// Import models to ensure they're registered with Mongoose
 import authRoutes from "./routes/authRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import mcAdminRoutes from "./routes/mcAdminRoutes.js";
@@ -13,27 +12,56 @@ import departmentRoutes from "./routes/departmentRoutes.js";
 import workerRoutes from "./routes/workerRoutes.js";
 import citizenRoutes from "./routes/citizenRoutes.js";
 import User from "./models/User.js";
-const app = express();
 
+dotenv.config(); // ✅ move to top before using env vars
+
+const app = express();
 app.use(express.json());
 app.use(cookieParser());
+
+// ✅ Allow local + deployed frontends
 const allowedOrigins = [
-  process.env.VERCEL_URL  
+  "http://localhost:5173", // for local dev
+  "https://govt-complaint-management-system.vercel.app", // frontend domain
+  `https://${process.env.VERCEL_URL}` // for vercel preview
 ].filter(Boolean);
 
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error("CORS not allowed"), false);
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"), false);
+    }
   },
   credentials: true
 }));
-dotenv.config();
-// Public & Auth routes
-app.use("/api/auth", authRoutes);
 
-// Role-based routes
+// ✅ Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(async () => {
+    console.log("MongoDB connected");
+
+    // Ensure Super Admin exists
+    const superAdmin = await User.findOne({ email: "superadmin@example.com" });
+    if (!superAdmin) {
+      const defaultAdmin = new User({
+        name: "Super Admin",
+        email: "superadmin@example.com",
+        password: "super123",
+        role: "super_admin"
+      });
+      await defaultAdmin.save();
+      console.log("✅ Default Super_Admin created");
+    } else {
+      console.log("Super_Admin already exists");
+    }
+  })
+  .catch(err => console.error("MongoDB error:", err.message));
+
+// ✅ Routes
+app.get("/", (req, res) => res.send("Backend running on Vercel ✅"));
+app.use("/api/auth", authRoutes);
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/mc-admin", mcAdminRoutes);
 app.use("/api/mla", mlaRoutes);
@@ -42,32 +70,5 @@ app.use("/api/department", departmentRoutes);
 app.use("/api/worker", workerRoutes);
 app.use("/api/citizen", citizenRoutes);
 
-// MongoDB connection
-// mongoose.connect("mongodb://127.0.0.1:27017/govt_complaint")
-mongoose.connect(process.env.MONGO_URI)
-.then(async () => {
-  console.log("MongoDB connected");
-
-  // Check if default Super_Admin exists
-  const superAdmin = await User.findOne({ email: "superadmin@example.com" });
-  if(!superAdmin){
-    const defaultAdmin = new User({
-      name: "Super Admin",
-      email: "superadmin@example.com",
-      password: "super123",
-      role:"super_admin"
-    });
-    await defaultAdmin.save();
-    console.log("Default Super_Admin created: email=superadmin@example.com, password=super123");
-  } else {
-    console.log("Super_Admin already exists");
-  }
-})
-.catch(err => console.error(err));
-
-const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, ()=> console.log(`Server running on http://localhost:${PORT}`));
-}
-
-export default app;
+// ❌ Remove app.listen()
+export default app; // ✅ Must export for Vercel
