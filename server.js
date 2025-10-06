@@ -39,15 +39,17 @@ app.use(cors({
 // Handle all OPTIONS preflight requests
 app.options(/.*/, cors()); // ✅ match all routes using regex
 // ✅ Connect to MongoDB
+let isMongoConnected = false;
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected ✅");
-    createDefaultSuperAdmin();
+    isMongoConnected = true;
   })
   .catch(err => console.error("MongoDB error:", err.message));
 
 // Function to create Super Admin if missing
-async function createDefaultSuperAdmin() {
+async function ensureSuperAdmin() {
+  if (!isMongoConnected) return; // wait for DB
   try {
     const existing = await User.findOne({ role: "super_admin" });
     if (!existing) {
@@ -59,13 +61,17 @@ async function createDefaultSuperAdmin() {
       });
       await admin.save();
       console.log("✅ Default Super Admin created");
-    } else {
-      console.log("Super Admin already exists");
     }
   } catch (err) {
     console.error("Error creating Super Admin:", err.message);
   }
 }
+
+// Example middleware to ensure Super Admin exists on first request
+app.use(async (req, res, next) => {
+  await ensureSuperAdmin();
+  next();
+});
 
 // ✅ Routes
 app.get("/", (req, res) => res.send("Backend running on Vercel ✅"));
