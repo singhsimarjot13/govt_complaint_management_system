@@ -37,13 +37,7 @@ app.use(cors({
 }));
 
 // Handle all OPTIONS preflight requests
-app.options("*", cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
+app.options(/.*/, cors()); // ✅ match all routes using regex
 // ✅ Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
