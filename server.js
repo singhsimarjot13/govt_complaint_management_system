@@ -21,20 +21,27 @@ app.use(cookieParser());
 
 // ✅ Allow local + deployed frontends
 const allowedOrigins = [
-  "http://localhost:5173", // for local dev
-  "https://govt-complaint-management-system-frontend-6v5dyx680.vercel.app/", // frontend domain
-  `https://${process.env.VERCEL_URL}` // for vercel preview
-].filter(Boolean);
+  "https://govt-complaint-management-system-fr.vercel.app", // frontend
+  `https://${process.env.VERCEL_URL}`
+];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"), false);
-    }
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // mobile apps or server requests
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("CORS not allowed"));
   },
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+// Handle all OPTIONS preflight requests
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 // ✅ Connect to MongoDB
