@@ -1,5 +1,4 @@
-import Ward from "../models/Ward.js";
-
+import Ward from "../models/ward.js";
 // Only wards under MLA's city
 export const createWardMLA = async (req, res) => {
   try {
