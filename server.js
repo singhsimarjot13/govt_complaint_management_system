@@ -19,7 +19,7 @@ const app = express();
 app.use(cors({
   origin: [
   "https://govt-complaint-management-system-fr.vercel.app", // frontend
-  `https://${process.env.VERCEL_URL}`
+  "http://localhost:5173", // frontend
   ],
   credentials: true,
 }));
@@ -75,4 +75,7 @@ app.use("/api/worker", workerRoutes);
 app.use("/api/citizen", citizenRoutes);
 
 // ❌ Remove app.listen()
+app.listen(5000, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
+});
 export default app; // ✅ Must export for Vercel

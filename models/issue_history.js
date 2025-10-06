@@ -66,7 +66,10 @@ const issueHistorySchema = new mongoose.Schema(
         "final_verified",
         "feedback_submitted",
         "reopened",
-        "transferred"
+        "transferred",
+        "priority_updated",
+        "Forwarded to MC Admin",
+        "worker_changed"
       ],
       required: true,
     },

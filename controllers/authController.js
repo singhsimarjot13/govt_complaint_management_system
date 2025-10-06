@@ -33,10 +33,26 @@ export const login = async (req, res) => {
   }
 };
 
-export const logout = async (req,res) => {
-  res.clearCookie("token");
-  res.json({ success:true, message:"Logged out successfully" });
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+    });
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during logout",
+    });
+  }
 };
+
 
 export const register = async (req, res) => {
   const { name, email, password, location, ward_id } = req.body;

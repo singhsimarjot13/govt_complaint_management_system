@@ -6,6 +6,7 @@ import Worker from "../models/workers.js";
 import Issue from "../models/issues.js";
 import IssueHistory from "../models/issue_history.js";
 import Notification from "../models/notifications.js";
+import { createNotification } from "../utils/notificationHelper.js";
 import MC_Admin from "../models/mc_admins.js";
 
 // ----- Councillors -----
@@ -285,13 +286,12 @@ export const assignIssueToDepartment = async (req, res) => {
     // Notify department admin
     const department = await Department.findById(department_id);
     if (department) {
-      const notification = new Notification({
+      await createNotification({
         issue_id,
         recipient_id: department.admin_id,
         recipient_model: "User",
-        type: "Issue Assigned - Please assign worker"
+        desiredType: "Issue Assigned - Please assign worker",
       });
-      await notification.save();
     }
 
     res.json({ 
@@ -345,13 +345,12 @@ export const transferIssueToDepartment = async (req, res) => {
     // Notify new department admin
     const department = await Department.findById(new_department_id);
     if (department) {
-      const notification = new Notification({
+      await createNotification({
         issue_id,
         recipient_id: department.admin_id,
         recipient_model: "User",
-        type: "Issue Transferred - Please assign worker"
+        desiredType: "Issue Transferred - Please assign worker",
       });
-      await notification.save();
     }
 
     res.json({ 

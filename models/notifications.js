@@ -25,7 +25,15 @@ const notificationSchema = new mongoose.Schema(
         "Reassigned",
         "Completed",
         "Reopened",
-        "Work Completed - Please verify"
+        "Work Completed - Please verify",
+        // Additional types referenced across controllers; mapping helper will normalize
+        "Issue Verified - Ready for Department Assignment",
+        "Issue Assigned - Please assign worker",
+        "Issue Transferred - Please assign worker",
+        "Issue Resolved - Please provide feedback"
+        ,
+        "Issue Assigned - Please start work",
+        "Issue Ready for Final Verification"
       ],
       required: true,
     },

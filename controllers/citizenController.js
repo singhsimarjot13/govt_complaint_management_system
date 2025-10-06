@@ -1,6 +1,7 @@
 import Issue from "../models/issues.js";
 import IssueHistory from "../models/issue_history.js";
 import Notification from "../models/notifications.js";
+import { createNotification } from "../utils/notificationHelper.js";
 import Ward from "../models/ward.js";
 import Department from "../models/dept.js";
 import Reward from "../models/rewards.js";
@@ -68,13 +69,12 @@ export const createIssue = async (req, res) => {
     if (ward_id) {
       const ward = await Ward.findById(ward_id);
       if (ward && ward.councillor_id) {
-        const notification = new Notification({
+        await createNotification({
           issue_id: issue._id,
           recipient_id: ward.councillor_id,
           recipient_model: "Councillor",
-          type: "Issue Assigned"
+          desiredType: "Issue Assigned",
         });
-        await notification.save();
       }
     }
 
@@ -246,13 +246,12 @@ export const reopenIssue = async (req, res) => {
       .populate('mc_admin_id');
     
     if (mcAdmin) {
-      const notification = new Notification({
+      await createNotification({
         issue_id,
         recipient_id: mcAdmin.mc_admin_id,
         recipient_model: "MC_Admin",
-        type: "Reopened"
+        desiredType: "Reopened",
       });
-      await notification.save();
     }
 
     res.json({ 

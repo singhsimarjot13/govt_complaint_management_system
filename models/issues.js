@@ -14,7 +14,7 @@ const issueSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Roads", "Sewage", "Water", "Electricity", "Other"],
+      enum: ["Roads", "Sewerage", "Water", "Electricity", "Other"],
       required: true,
     },
     description: {

@@ -4,9 +4,10 @@ import {
   getWardIssues,
   getUnassignedIssues,
   verifyIssue,
-  forwardToMCAdmin,
+
   markResolved,
-  getWards
+  getWards,
+  setIssuePriorityByCouncillor
 } from "../controllers/councillorController.js";
 
 const router = express.Router();
@@ -16,8 +17,9 @@ router.get("/ward-issues", protect(["councillor"]), getWardIssues);
 router.get("/wards", protect(["councillor"]), getWards);
 router.get("/unassigned-issues", protect(["councillor"]), getUnassignedIssues);
 router.put("/issues/:issue_id/verify", protect(["councillor"]), verifyIssue);
-router.put("/issues/:issue_id/forward", protect(["councillor"]), forwardToMCAdmin);
+
 router.put("/issues/:issue_id/resolve", protect(["councillor"]), markResolved);
+router.put("/issues/:issue_id/priority", protect(["councillor"]), setIssuePriorityByCouncillor);
 
 export default router;
 

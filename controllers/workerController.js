@@ -1,6 +1,7 @@
 import Issue from "../models/issues.js";
 import IssueHistory from "../models/issue_history.js";
 import Notification from "../models/notifications.js";
+import { createNotification } from "../utils/notificationHelper.js";
 import Worker from "../models/workers.js";
 import User from "../models/User.js";
 import Department from "../models/dept.js";
@@ -162,13 +163,12 @@ export const markWorkDone = async (req, res) => {
     // Notify department admin for verification
     const department = await Department.findById(worker.department_id);
     if (department) {
-      const notification = new Notification({
+      await createNotification({
         issue_id,
         recipient_id: department.admin_id,
         recipient_model: "User",
-        type: "Work Completed - Please verify"
+        desiredType: "Work Completed - Please verify",
       });
-      await notification.save();
     }
 
     res.json({ 

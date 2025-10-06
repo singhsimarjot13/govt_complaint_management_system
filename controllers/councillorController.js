@@ -5,6 +5,7 @@ import Notification from "../models/notifications.js";
 import Councillor from "../models/Councillors.js";
 import MC_Admin from "../models/mc_admins.js";
 import User from "../models/User.js";
+import { createNotification } from "../utils/notificationHelper.js";
 
 // Get issues for councillor's ward
 export const getWardIssues = async (req, res) => {
@@ -92,14 +93,13 @@ export const verifyIssue = async (req, res) => {
     if (councillor) {
       const mcAdmin = await MC_Admin.findById(councillor.mc_admin_id);
       if (mcAdmin) {
-        // Create notification for MC Admin
-        const notification = new Notification({
+        // Create notification for MC Admin (mapped type)
+        await createNotification({
           issue_id,
           recipient_id: mcAdmin._id,
           recipient_model: "MC_Admin",
-          type: "Issue Verified - Ready for Department Assignment"
+          desiredType: "Issue Verified - Ready for Department Assignment",
         });
-        await notification.save();
       }
     }
 
@@ -113,33 +113,7 @@ export const verifyIssue = async (req, res) => {
   }
 };
 
-// Forward verified issue to MC Admin
-export const forwardToMCAdmin = async (req, res) => {
-  try {
-    const { issue_id } = req.params;
-    const councillor_id = req.user.id;
 
-    const issue = await Issue.findById(issue_id);
-    if (!issue) {
-      return res.status(404).json({ message: "Issue not found" });
-    }
-
-    // Update issue status
-    issue.status = "in-progress";
-    await issue.save();
-
-    // Create history entry
-    const history = new IssueHistory({
-      issue_id,
-      status: "Forwarded to MC Admin"
-    });
-    await history.save();
-
-    res.json({ message: "Issue forwarded to MC Admin", issue });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
 
 // Mark issue as resolved (final verification)
 export const markResolved = async (req, res) => {
@@ -175,13 +149,12 @@ export const markResolved = async (req, res) => {
     await history.save();
 
     // Notify user that issue is resolved
-    const notification = new Notification({
+    await createNotification({
       issue_id,
       recipient_id: issue.user_id,
       recipient_model: "User",
-      type: "Issue Resolved - Please provide feedback"
+      desiredType: "Issue Resolved - Please provide feedback",
     });
-    await notification.save();
 
     res.json({ 
       message: "Issue marked as resolved", 
@@ -190,6 +163,49 @@ export const markResolved = async (req, res) => {
     });
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+// Set or update issue priority (Councillor)
+export const setIssuePriorityByCouncillor = async (req, res) => {
+  try {
+    const { issue_id } = req.params;
+    const { priority } = req.body; // Expected: "Low" | "Medium" | "High"
+    const councillor_id = req.user.id;
+
+    const issue = await Issue.findById(issue_id);
+    if (!issue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    // Allow councillor to set priority before escalation/forward and when reopened
+    const allowedStatuses = [
+      "open",
+      "verified_by_councillor",
+      "reopened",
+    ];
+    if (!allowedStatuses.includes(issue.status)) {
+      return res.status(400).json({ message: "Priority can only be set before escalation or when reopened" });
+    }
+
+    // Enforce allowed enum values from Issue model
+    const normalized = ["Low", "Medium", "High"].includes(priority) ? priority : "Medium";
+    issue.priority = normalized;
+    await issue.save();
+
+    // History entry for auditing
+    const history = new IssueHistory({
+      issue_id,
+      assigned_by_councillor_id: councillor_id,
+      status: issue.status,
+      action_type: "priority_updated",
+      notes: `Priority set to ${normalized} by councillor`,
+    });
+    await history.save();
+
+    return res.json({ message: "Priority updated", issue });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
   }
 };
 

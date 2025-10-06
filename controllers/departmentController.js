@@ -3,6 +3,7 @@ import Worker from "../models/workers.js";
 import Issue from "../models/issues.js";
 import IssueHistory from "../models/issue_history.js";
 import Notification from "../models/notifications.js";
+import { createNotification } from "../utils/notificationHelper.js";
 import Department from "../models/dept.js";
 import Ward from "../models/ward.js";
 
@@ -129,13 +130,12 @@ export const assignIssueToWorker = async (req, res) => {
 
     // Notify worker
     const workerUser = await User.findOne({ email: worker.email });
-    const notification = new Notification({
+    await createNotification({
       issue_id,
       recipient_id: workerUser._id,
       recipient_model: "User",
-      type: "Issue Assigned - Please start work"
+      desiredType: "Issue Assigned - Please start work",
     });
-    await notification.save();
 
     res.json({ 
       message: "Issue assigned to worker", 
@@ -184,13 +184,12 @@ export const verifyWorkCompletion = async (req, res) => {
     if (issue.ward_id) {
       const ward = await Ward.findById(issue.ward_id);
       if (ward && ward.councillor_id) {
-        const notification = new Notification({
+        await createNotification({
           issue_id,
           recipient_id: ward.councillor_id,
           recipient_model: "Councillor",
-          type: "Issue Ready for Final Verification"
+          desiredType: "Issue Ready for Final Verification",
         });
-        await notification.save();
       }
     }
 
@@ -252,13 +251,12 @@ export const transferIssueToDepartment = async (req, res) => {
     // Notify new department admin
     const newDepartment = await Department.findById(new_department_id);
     if (newDepartment) {
-      const notification = new Notification({
+      await createNotification({
         issue_id,
         recipient_id: newDepartment.admin_id,
         recipient_model: "User",
-        type: "Issue Transferred - Please assign worker"
+        desiredType: "Issue Transferred - Please assign worker",
       });
-      await notification.save();
     }
 
     res.json({ 
@@ -336,13 +334,12 @@ export const changeWorker = async (req, res) => {
     // Notify new worker
     const workerUser = await User.findOne({ email: newWorker.email });
     if (workerUser) {
-      const notification = new Notification({
+      await createNotification({
         issue_id,
         recipient_id: workerUser._id,
         recipient_model: "User",
-        type: "Issue Assigned - Please start work"
+        desiredType: "Issue Assigned - Please start work",
       });
-      await notification.save();
     }
 
     res.json({ 
