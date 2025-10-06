@@ -5,6 +5,7 @@ import Issue from "../models/issues.js";
 import Department from "../models/dept.js";
 import Worker from "../models/workers.js";
 import Ward from "../models/ward.js";
+import Councillor from "../models/Councillors.js";
 
 // Dashboard
 export const getDashboard = async (req, res) => {
@@ -33,9 +34,9 @@ export const getDistrictStats = async (req, res) => {
     const results = [];
 
     for (const mc of mcAdmins) {
-      const councillorModel = (await import("../models/Councillors.js")).default;
-      const councillors = await councillorModel.find({ mc_admin_id: mc.user_id });
-      const wardIds = councillors.map((c) => c.ward_id).filter(Boolean);
+      // Fetch councillors for this MC admin
+      const councillors = await Councillor.find({ mc_admin_id: mc.user_id });
+      const wardIds = councillors.map(c => c.ward_id).filter(Boolean);
 
       let total = 0;
       let resolved = 0;
@@ -43,10 +44,15 @@ export const getDistrictStats = async (req, res) => {
       let pending = 0;
 
       if (wardIds.length > 0) {
-        const IssueModel = (await import("../models/issues.js")).default;
         total = await IssueModel.countDocuments({ ward_id: { $in: wardIds } });
-        resolved = await IssueModel.countDocuments({ ward_id: { $in: wardIds }, status: { $in: ["verified_resolved", "resolved"] } });
-        verified = await IssueModel.countDocuments({ ward_id: { $in: wardIds }, status: "verified_by_councillor" });
+        resolved = await IssueModel.countDocuments({ 
+          ward_id: { $in: wardIds },
+          status: { $in: ["verified_resolved", "resolved"] } 
+        });
+        verified = await IssueModel.countDocuments({ 
+          ward_id: { $in: wardIds },
+          status: "verified_by_councillor" 
+        });
         pending = Math.max(total - resolved, 0);
       }
 
@@ -56,7 +62,7 @@ export const getDistrictStats = async (req, res) => {
         total,
         resolved,
         pending,
-        verified,
+        verified
       });
     }
 
@@ -103,14 +109,12 @@ export const getMCAdminLeaderboard = async (req, res) => {
       const mcAdmins = await MC_Admin.find({});
       const results = [];
       for (const mc of mcAdmins) {
-        const councillorModel = (await import("../models/Councillors.js")).default;
-        const councillors = await councillorModel.find({ mc_admin_id: mc.user_id });
+        const councillors = await Councillor.find({ mc_admin_id: mc.user_id });
         const wardIds = councillors.map((c) => c.ward_id).filter(Boolean);
         let total = 0, resolved = 0;
         if (wardIds.length > 0) {
-          const IssueModel = (await import("../models/issues.js")).default;
-          total = await IssueModel.countDocuments({ ward_id: { $in: wardIds } });
-          resolved = await IssueModel.countDocuments({ ward_id: { $in: wardIds }, status: { $in: ["verified_resolved", "resolved"] } });
+          total = await Issue.countDocuments({ ward_id: { $in: wardIds } });
+          resolved = await Issue.countDocuments({ ward_id: { $in: wardIds }, status: { $in: ["verified_resolved", "resolved"] } });
         }
         const efficiency = total > 0 ? Math.round((resolved / total) * 100) : 0;
         results.push({ district: mc.city, mcAdmin: mc.name, resolvedCount: resolved, total, efficiency });
